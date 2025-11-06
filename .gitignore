@@ -4,9 +4,10 @@ __pycache__/
 *.pyo
 
 # Virtual environments
-.venv/
 venv/
+backend/venv/
 
 # OS files
 .DS_Store
 Thumbs.db
+
