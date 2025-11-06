@@ -4,7 +4,7 @@ from flask_cors import CORS
 app = Flask(__name__)
 CORS(app)  # allow frontend requests
 
-USERS = {"user1": "pass1", "user2": "pass2"}
+USERS = {"user1": "password1", "user2": "password2"}
 VISITS = {"user1": 0, "user2": 0}
 
 @app.route("/api/login", methods=["POST"])
