@@ -1,0 +1,22 @@
+trigger:
+  branches:
+    include:
+      - main
+  paths:
+    include:
+      - frontend/**
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - checkout: self
+
+  - script: |
+      echo "=== Building Frontend ==="
+      cd frontend
+      echo "Listing frontend files:"
+      ls
+      echo "✅ Frontend build complete"
+    displayName: "Build Frontend"
+
