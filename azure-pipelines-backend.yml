@@ -7,17 +7,16 @@ trigger:
       - backend/**
 
 pool:
-  vmImage: 'ubuntu-latest'
+  name: my-vm-pool     # 👈 Your own VM pool
+  demands:
+    - agent.name -equals my-vm
 
 steps:
   - checkout: self
-
   - script: |
-      echo "=== Building Flask Backend ==="
+      echo "Running on self-hosted agent!"
       cd backend
       python3 -m venv venv
       source venv/bin/activate
       pip install -r requirements.txt
-      echo "✅ Backend build successful"
-    displayName: "Build Flask Backend"
-
+      echo "✅ Backend build successful on Azure VM"
