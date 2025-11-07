@@ -7,16 +7,32 @@ trigger:
       - backend/**
 
 pool:
-  name: my-vm-pool     # 👈 Your own VM pool
-  demands:
-    - agent.name -equals myvm-agent
+  vmImage: 'ubuntu-latest'
 
 steps:
   - checkout: self
+
   - script: |
-      echo "Running on self-hosted agent!"
+      echo "=== Building Flask Backend ==="
       cd backend
       python3 -m venv venv
       source venv/bin/activate
       pip install -r requirements.txt
-      echo "✅ Backend build successful on Azure VM"
+      echo "✅ Backend build successful"
+    displayName: "Build Flask Backend"
+
+  - task: SSH@0
+    inputs:
+      sshEndpoint: 'ssh'
+      runOptions: 'commands'
+      commands: |
+        echo "=== Deploying Flask app to VM ==="
+        cd /home/leela-vm/teccity-demo
+        git pull origin main
+        cd backend
+        source venv/bin/activate
+        pip install -r requirements.txt
+        nohup python app.py > flask.log 2>&1 &
+        echo "✅ Flask app started successfully"
+    displayName: "Deploy Flask to VM"
+
