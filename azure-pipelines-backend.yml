@@ -29,7 +29,9 @@ steps:
       commands: |
         echo "=== Deploying Flask app to VM ==="
         cd /home/leela-vm/teccity-demo
-        git pull
+        git reset --hard HEAD
+        git clean -fd
+        git pull origin main
         cd backend
         source venv/bin/activate
         pip install -r requirements.txt
