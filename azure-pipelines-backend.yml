@@ -8,7 +8,7 @@ trigger:
 
 pool:
     name: my-vm-pool     # 👈 Your own VM pool
-  demands:
+    demands:
     - agent.name -equals myvm-agent
 steps:
   - checkout: self
