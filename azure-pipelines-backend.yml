@@ -7,8 +7,9 @@ trigger:
       - backend/**
 
 pool:
-  vmImage: 'ubuntu-latest'
-
+    name: my-vm-pool     # 👈 Your own VM pool
+  demands:
+    - agent.name -equals myvm-agent
 steps:
   - checkout: self
 
