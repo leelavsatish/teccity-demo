@@ -7,35 +7,35 @@ trigger:
       - backend/**
 
 pool:
-    name: my-vm-pool     # 👈 Your own VM pool
-    demands:
+  name: my-vm-pool
+  demands:
     - agent.name -equals myvm-agent
+
+variables:
+  imageName: teccity-backend
+
 steps:
   - checkout: self
 
+  # Build Docker image
   - script: |
-      echo "=== Building Flask Backend ==="
-      cd backend
-      python3 -m venv venv
-      source venv/bin/activate
-      pip install -r requirements.txt
-      echo "✅ Backend build successful"
-    displayName: "Build Flask Backend"
+      echo "=== Building Docker image ==="
+      docker build -t $(imageName):latest -f backend/Dockerfile .
+    displayName: "Build Flask Docker Image"
 
+
+  # Deploy via SSH to VM
   - task: SSH@0
     inputs:
       sshEndpoint: 'ssh'
       runOptions: 'commands'
       commands: |
-        echo "=== Deploying Flask app to VM ==="
+        echo "=== Deploying Flask Docker container ==="
+        docker ps -q --filter "name=flask-backend" | grep -q . && docker stop flask-backend && docker rm flask-backend || echo "No existing container"
+        docker image rm teccity-backend:latest || true
         cd /home/leela-vm/teccity-demo
-        git reset --hard HEAD
-        git clean -fd
         git pull origin main
-        cd backend
-        source venv/bin/activate
-        pip install -r requirements.txt
-        nohup python app.py > flask.log 2>&1 &
-        echo "✅ Flask app started successfully"
-    displayName: "Deploy Flask to VM"
-
+        docker build -t teccity-backend:latest -f backend/Dockerfile .
+        docker run -d -p 5000:5000 --name flask-backend teccity-backend:latest
+        echo "✅ Flask backend container deployed successfully"
+    displayName: "Deploy Flask Docker Container"
