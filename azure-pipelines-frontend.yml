@@ -11,14 +11,63 @@ pool:
   demands:
     - agent.name -equals myvm-agent
 
-steps:
-  - checkout: self
+variables:
+  imageName: 'frontend-app'
+  acrName: 'teccitydemo.azurecr.io'
+  tag: $(Build.BuildId)
 
-  - script: |
-      echo "=== Building Frontend ==="
-      cd frontend
-      echo "Listing frontend files:"
-      ls
-      echo "✅ Frontend build complete"
-    displayName: "Build Frontend"
+stages:
+- stage: Build
+  jobs:
+  - job: BuildAndPush
+    steps:
+    - task: Docker@2
+      displayName: Build frontend image
+      inputs:
+        command: build
+        repository: $(acrName)/$(imageName)
+        dockerfile: Dockerfile
+        buildContext: .
+        arguments: --target frontend
+        tags: |
+          $(tag)
+        containerRegistry: 'ACR-Registry-Connection'
 
+    - task: Docker@2
+      displayName: Push frontend image
+      inputs:
+        command: push
+        repository: $(acrName)/$(imageName)
+        tags: |
+          $(tag)
+        containerRegistry: 'ACR-Registry-Connection'
+
+- stage: Deploy
+  dependsOn: Build
+  jobs:
+  - job: DeployFrontend
+    steps:
+    - task: FileTransform@2
+      displayName: Replace tag in frontend manifest
+      inputs:
+        folderPath: k8s/frontend
+        fileType: yaml
+        targetFiles: deployment.yaml
+        substitutions: |
+          __TAG__=$(tag)
+
+    - task: Kubernetes@1
+      displayName: Deploy frontend to AKS
+      inputs:
+        connectionType: 'Azure Resource Manager'
+        azureSubscriptionEndpoint: 'Azure-ARM-Connection'
+        azureResourceGroup: '<aks-resource-group>'
+        kubernetesCluster: '<aks-cluster-name>'
+        namespace: 'myapp'
+        command: apply
+        useConfigurationFile: true
+        configuration: k8s/frontend/deployment.yaml
+        secretType: 'dockerRegistry'
+        containerRegistryType: 'Azure Container Registry'
+        azureSubscriptionEndpointForSecrets: 'Azure-ARM-Connection'
+        azureContainerRegistry: 'teccitydemo.azurecr.io'

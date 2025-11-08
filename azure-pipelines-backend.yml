@@ -12,30 +12,62 @@ pool:
     - agent.name -equals myvm-agent
 
 variables:
-  imageName: teccity-backend
+  imageName: 'backend-app'
+  acrName: 'teccitydemo.azurecr.io'
+  tag: $(Build.BuildId)
 
-steps:
-  - checkout: self
+stages:
+- stage: Build
+  jobs:
+  - job: BuildAndPush
+    steps:
+    - task: Docker@2
+      displayName: Build backend image
+      inputs:
+        command: build
+        repository: $(acrName)/$(imageName)
+        dockerfile: Dockerfile
+        buildContext: .
+        arguments: --target backend
+        tags: |
+          $(tag)
+        containerRegistry: 'ACR-Registry-Connection'   # <-- Service connection
 
-  # Build Docker image
-  - script: |
-      echo "=== Building Docker image ==="
-      docker build -t $(imageName):latest -f backend/Dockerfile .
-    displayName: "Build Flask Docker Image"
+    - task: Docker@2
+      displayName: Push backend image
+      inputs:
+        command: push
+        repository: $(acrName)/$(imageName)
+        tags: |
+          $(tag)
+        containerRegistry: 'ACR-Registry-Connection'
 
+- stage: Deploy
+  dependsOn: Build
+  jobs:
+  - job: DeployBackend
+    steps:
+    - task: FileTransform@2
+      displayName: Replace tag in backend manifest
+      inputs:
+        folderPath: k8s/backend
+        fileType: yaml
+        targetFiles: deployment.yaml
+        substitutions: |
+          __TAG__=$(tag)
 
-  # Deploy via SSH to VM
-  - task: SSH@0
-    inputs:
-      sshEndpoint: 'ssh'
-      runOptions: 'commands'
-      commands: |
-        echo "=== Deploying Flask Docker container ==="
-        docker ps -q --filter "name=flask-backend" | grep -q . && docker stop flask-backend && docker rm flask-backend || echo "No existing container"
-        docker image rm teccity-backend:latest || true
-        cd /home/leela-vm/teccity-demo
-        git pull origin main
-        docker build -t teccity-backend:latest -f backend/Dockerfile .
-        docker run -d -p 5000:5000 --name flask-backend teccity-backend:latest
-        echo "✅ Flask backend container deployed successfully"
-    displayName: "Deploy Flask Docker Container"
+    - task: Kubernetes@1
+      displayName: Deploy backend to AKS
+      inputs:
+        connectionType: 'Azure Resource Manager'
+        azureSubscriptionEndpoint: 'Azure-ARM-Connection'   # <-- ARM service connection
+        azureResourceGroup: '<aks-resource-group>'
+        kubernetesCluster: '<aks-cluster-name>'
+        namespace: 'myapp'
+        command: apply
+        useConfigurationFile: true
+        configuration: k8s/backend/deployment.yaml
+        secretType: 'dockerRegistry'
+        containerRegistryType: 'Azure Container Registry'
+        azureSubscriptionEndpointForSecrets: 'Azure-ARM-Connection'
+        azureContainerRegistry: 'teccitydemo.azurecr.io'
