@@ -1,11 +1,24 @@
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+import os
 
-app = Flask(__name__)
-CORS(app)  # allow frontend requests
+app = Flask(__name__, static_folder='../frontend')
+CORS(app)
 
 USERS = {"user1": "password1", "user2": "password2"}
 VISITS = {"user1": 0, "user2": 0}
+
+@app.route("/")
+def serve_login():
+    return send_from_directory(app.static_folder, "login.html")
+
+@app.route("/dashboard")
+def serve_dashboard():
+    return send_from_directory(app.static_folder, "dashboard.html")
+
+@app.route("/<path:filename>")
+def serve_static(filename):
+    return send_from_directory(app.static_folder, filename)
 
 @app.route("/api/login", methods=["POST"])
 def login():

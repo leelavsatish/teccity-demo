@@ -1,44 +1,44 @@
-const backendURL = "http://4.240.93.124:5000"; // update this
-
-async function login() {
+// Login function for login.html
+function login() {
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
-  const msg = document.getElementById("msg");
 
-  const response = await fetch(`${backendURL}/api/login`, {
+  fetch("/api/login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ username, password }),
-  });
+    body: JSON.stringify({ username, password })
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.status === "success") {
+        localStorage.setItem("username", username);
+        window.location.href = "/dashboard";
+      } else {
+        document.getElementById("message").innerText = data.message;
+      }
+    });
+}
 
-  const data = await response.json();
-  msg.innerText = data.message;
+// Dashboard logic for dashboard.html
+document.addEventListener("DOMContentLoaded", () => {
+  const visitsElement = document.getElementById("visits");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const username = localStorage.getItem("username");
 
-  if (response.ok) {
-    localStorage.setItem("user", username);
-    window.location.href = "dashboard.html";
+  if (visitsElement && username) {
+    fetch(`/api/visits/${username}`)
+      .then(res => res.json())
+      .then(data => {
+        visitsElement.innerText =
+          `Hello ${data.username}, you have visited ${data.visits} times.`;
+      });
   }
-}
 
-async function loadDashboard() {
-  const user = localStorage.getItem("user");
-  if (!user) {
-    window.location.href = "login.html";
-    return;
+  if (logoutBtn) {
+    logoutBtn.addEventListener("click", () => {
+      localStorage.removeItem("username");
+      window.location.href = "/";
+    });
   }
-
-  const response = await fetch(`${backendURL}/api/visits/${user}`);
-  const data = await response.json();
-  document.getElementById("info").innerText = `${user} visited ${data.visits} times`;
-}
-
-function logout() {
-  localStorage.removeItem("user");
-  window.location.href = "login.html";
-}
-
-// Auto-run dashboard fetch if on that page
-if (window.location.pathname.endsWith("dashboard.html")) {
-  loadDashboard();
-}
+});
 
