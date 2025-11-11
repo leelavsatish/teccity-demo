@@ -28,7 +28,6 @@ stages:
         repository: $(acrName)/$(imageName)
         dockerfile: Dockerfile
         buildContext: .
-        arguments: --target backend
         tags: |
           $(tag)
         containerRegistry: 'ACR-Registry-Connection'   # <-- Service connection

@@ -17,18 +17,18 @@ WORKDIR /app
 # Copy backend from backend stage
 COPY --from=backend /app /app
 
-# Install nginx
-RUN apt-get update && apt-get install -y nginx && rm -rf /var/lib/apt/lists/*
+# Install nginx + supervisor
+RUN apt-get update && apt-get install -y nginx supervisor && rm -rf /var/lib/apt/lists/*
 
-# Copy frontend from frontend stage into nginx html folder
+# Copy frontend from frontend stage
 COPY --from=frontend /usr/share/nginx/html /usr/share/nginx/html
 
 # Configure nginx
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Expose ports: 5000 for backend, 80 for frontend
+# Copy supervisor config
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
 EXPOSE 5000 80
 
-# Start both services (simple example using supervisord or shell script)
-CMD ["sh", "-c", "python app.py & nginx -g 'daemon off;'"]
-
+CMD ["supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]
