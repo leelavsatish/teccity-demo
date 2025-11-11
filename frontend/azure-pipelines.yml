@@ -4,7 +4,7 @@ trigger:
       - main
   paths:
     include:
-      - frontend/**
+      - frontend/*
 
 pool:
   name: my-vm-pool     # 👈 Your own VM pool
@@ -45,29 +45,12 @@ stages:
 - stage: Deploy
   dependsOn: Build
   jobs:
-  - job: DeployFrontend
+  - job: DeployToWebApp
     steps:
-    - task: FileTransform@2
-      displayName: Replace tag in frontend manifest
+    - task: AzureWebAppContainer@1
+      displayName: Deploy to Web App
       inputs:
-        folderPath: k8s/frontend
-        fileType: yaml
-        targetFiles: deployment.yaml
-        substitutions: |
-          __TAG__=$(tag)
+        azureSubscription: 'Azure-ARM-Connection'   # Your service connection
+        appName: 'teccitydemo'                    # Same as created above
+        imageName: 'teccitydemo.azurecr.io/myapp:$(tag)'
 
-    - task: Kubernetes@1
-      displayName: Deploy frontend to AKS
-      inputs:
-        connectionType: 'Azure Resource Manager'
-        azureSubscriptionEndpoint: 'Azure-ARM-Connection'
-        azureResourceGroup: '<aks-resource-group>'
-        kubernetesCluster: '<aks-cluster-name>'
-        namespace: 'myapp'
-        command: apply
-        useConfigurationFile: true
-        configuration: k8s/frontend/deployment.yaml
-        secretType: 'dockerRegistry'
-        containerRegistryType: 'Azure Container Registry'
-        azureSubscriptionEndpointForSecrets: 'Azure-ARM-Connection'
-        azureContainerRegistry: 'teccitydemo.azurecr.io'
