@@ -12,7 +12,7 @@ pool:
     - agent.name -equals myvm-agent
 
 variables:
-  imageName: 'frontend-app'
+  imageName: 'myapp'
   acrName: 'teccitydemo.azurecr.io'
   tag: $(Build.BuildId)
 
