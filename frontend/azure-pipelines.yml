@@ -30,7 +30,7 @@ stages:
         buildContext: .
         tags: |
           $(tag)
-          latest                              # ✅ push both tags
+          latest                              
         containerRegistry: 'ACR-Registry-Connection'
 
 - stage: Deploy
