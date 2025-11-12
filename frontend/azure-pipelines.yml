@@ -4,10 +4,10 @@ trigger:
       - main
   paths:
     include:
-      - frontend/*
+      - backend/*
 
 pool:
-  name: my-vm-pool     # 👈 Your own VM pool
+  name: my-vm-pool
   demands:
     - agent.name -equals myvm-agent
 
@@ -22,23 +22,15 @@ stages:
   - job: BuildAndPush
     steps:
     - task: Docker@2
-      displayName: Build frontend image
+      displayName: Build and push image
       inputs:
-        command: build
-        repository: $(acrName)/$(imageName)
+        command: buildAndPush
+        repository: $(imageName)              # ✅ only repo name
         dockerfile: Dockerfile
         buildContext: .
         tags: |
           $(tag)
-        containerRegistry: 'ACR-Registry-Connection'
-
-    - task: Docker@2
-      displayName: Push frontend image
-      inputs:
-        command: push
-        repository: $(acrName)/$(imageName)
-        tags: |
-          $(tag)
+          latest                              # ✅ push both tags
         containerRegistry: 'ACR-Registry-Connection'
 
 - stage: Deploy
@@ -49,7 +41,7 @@ stages:
     - task: AzureWebAppContainer@1
       displayName: Deploy to Web App
       inputs:
-        azureSubscription: 'Azure-ARM-Connection'   # Your service connection
-        appName: 'teccitydemo'                    # Same as created above
-        imageName: 'teccitydemo.azurecr.io/myapp:$(tag)'
+        azureSubscription: 'Azure-ARM-Connection'
+        appName: 'teccitydemo'
+        imageName: '$(acrName)/$(imageName):$(tag)'   # ✅ correct full image reference
 
